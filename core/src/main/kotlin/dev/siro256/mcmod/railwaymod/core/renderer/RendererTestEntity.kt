@@ -1,29 +1,25 @@
 package dev.siro256.mcmod.railwaymod.core.renderer
 
-import com.mojang.blaze3d.vertex.BufferBuilder
 import com.mojang.blaze3d.vertex.PoseStack
-import com.mojang.blaze3d.vertex.Tesselator
 import com.mojang.math.Vector4f
 import dev.siro256.mcmod.railwaymod.core.Values
 import dev.siro256.mcmod.railwaymod.core.entity.EntityTest
 import dev.siro256.mcmod.railwaymod.core.math.vector.Vector2f
 import dev.siro256.mcmod.railwaymod.core.math.vector.Vector3f
 import dev.siro256.mcmod.railwaymod.core.pack.model.*
+import dev.siro256.mcmod.railwaymod.core.renderer.rendertypes.EntityCutoutNoCullWithTriangles
 import net.minecraft.client.renderer.MultiBufferSource
-import net.minecraft.client.renderer.RenderType
 import net.minecraft.client.renderer.culling.Frustum
 import net.minecraft.client.renderer.entity.EntityRenderer
 import net.minecraft.client.renderer.entity.EntityRendererProvider
 import net.minecraft.client.renderer.texture.OverlayTexture
 import net.minecraft.resources.ResourceLocation
-import org.apache.logging.log4j.LogManager
 import org.lwjgl.opengl.GL32.*
 import java.awt.Color
-import java.nio.FloatBuffer
 import java.util.*
 import kotlin.properties.Delegates
 
-class RendererTestEntity(context: EntityRendererProvider.Context): EntityRenderer<EntityTest>(context) {
+class RendererTestEntity(context: EntityRendererProvider.Context) : EntityRenderer<EntityTest>(context) {
     override fun getTextureLocation(entity: EntityTest) = ResourceLocation(Values.MOD_ID, "textures/entity/test.png")
 
     override fun shouldRender(entity: EntityTest, frustum: Frustum, d: Double, e: Double, f: Double): Boolean {
@@ -38,12 +34,8 @@ class RendererTestEntity(context: EntityRendererProvider.Context): EntityRendere
         multiBufferSource: MultiBufferSource,
         light: Int
     ) {
-        //super.render(entity, yaw, tickDelta, poseStack, multiBufferSource, light)
-        //val logger = LogManager.getLogger("RailwayMod/Debug")
-
-        //val shader = RenderDataManager.getShader(ResourceLocation(Values.MOD_ID, "test")).get()
-
-        val bufferBuilder = multiBufferSource.getBuffer(RenderType.entityCutoutNoCull(entity.textureLocation)) as BufferBuilder
+        val bufferBuilder =
+            multiBufferSource.getBuffer(EntityCutoutNoCullWithTriangles.memoized(entity.textureLocation))
 
         model.objects.flatMap { it.surface }.flatMap { it.vertices }.forEach {
             val vertex = model.vertices[it.vertexIndex - 1]
@@ -51,7 +43,8 @@ class RendererTestEntity(context: EntityRendererProvider.Context): EntityRendere
             val normalVector = model.normalVectors[it.normalVectorIndex.get() - 1]
 
             val vertex4f = Vector4f(vertex.x, vertex.y, vertex.z, 1.0F).apply { transform(poseStack.last().pose()) }
-            val normal3f = com.mojang.math.Vector3f(normalVector.x, normalVector.y, normalVector.z).apply { transform(poseStack.last().normal()) }
+            val normal3f = com.mojang.math.Vector3f(normalVector.x, normalVector.y, normalVector.z)
+                .apply { transform(poseStack.last().normal()) }
 
             bufferBuilder.vertex(
                 vertex4f.x(), vertex4f.y(), vertex4f.z(),
@@ -62,52 +55,6 @@ class RendererTestEntity(context: EntityRendererProvider.Context): EntityRendere
                 normal3f.x(), normal3f.y(), normal3f.z()
             )
         }
-
-//        glUseProgram(shader)
-//        glBindVertexArray(vertexArrayObject)
-//        glBindBuffer(GL_ARRAY_BUFFER, vertexAttributeBuffer)
-//        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBuffer)
-//
-//        val iPositionLocation = glGetAttribLocation(shader, "position")
-//        if (iPositionLocation == -1) throw RuntimeException("Can't get position location.")
-//        val iUVLocation = glGetAttribLocation(shader, "uvIn")
-//        if (iUVLocation == -1) throw RuntimeException("Can't get uvIn location.")
-//
-//        val uModelViewMatrixLocation = glGetUniformLocation(shader, "modelViewMatrix")
-//        if (uModelViewMatrixLocation == -1) throw RuntimeException("Can't get modelViewMatrix location.")
-//        val uProjectionMatrixLocation = glGetUniformLocation(shader, "projectionMatrix")
-//        if (uProjectionMatrixLocation == -1) throw RuntimeException("Can't get projectionMatrix location.")
-//        val uTextureSamplerLocation = glGetUniformLocation(shader, "textureSampler")
-//        if (uTextureSamplerLocation == -1) throw RuntimeException("Can't get textureSampler location.")
-//
-//        glVertexAttribPointer(iPositionLocation, 3, GL_FLOAT, false, 5 * Float.SIZE_BYTES, 0)
-//        glEnableVertexAttribArray(iPositionLocation)
-//        glVertexAttribPointer(iUVLocation, 2, GL_FLOAT, false, 5 * Float.SIZE_BYTES, 3L * Float.SIZE_BYTES)
-//        glEnableVertexAttribArray(iUVLocation)
-//
-//        glUniformMatrix4fv(
-//            uModelViewMatrixLocation,
-//            false,
-//            FloatBuffer.allocate(16).apply { poseStack.last().pose().store(this) }.array()
-//        )
-//        glUniformMatrix4fv(
-//            uProjectionMatrixLocation,
-//            false,
-//            FloatBuffer.allocate(16).apply { RenderSystem.getProjectionMatrix().store(this) }.array()
-//        )
-//
-//        glUniform1i(uTextureSamplerLocation, 0)
-//        glActiveTexture(GL_TEXTURE0)
-//        Minecraft.getInstance().textureManager.getTexture(entity.textureLocation).bind()
-//
-//        glEnable(GL_DEPTH_TEST)
-//
-//        glDrawElements(GL_TRIANGLES, numberOfVertices, GL_UNSIGNED_INT, 0)
-//
-//        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBuffer)
-//        glBindBuffer(GL_ARRAY_BUFFER, vertexAttributeBuffer)
-//        glBindVertexArray(vertexArrayObject)
-//        glUseProgram(0)
     }
 
     companion object {
